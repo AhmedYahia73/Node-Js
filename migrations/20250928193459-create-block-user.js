@@ -10,6 +10,7 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       user_id: {
+        type: Sequelize.INTEGER,
         references: {
           model: 'Users', 
           key: 'id'
@@ -18,6 +19,7 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       friend_id: {
+        type: Sequelize.INTEGER,
         references: {
           model: 'Users', 
           key: 'id'
