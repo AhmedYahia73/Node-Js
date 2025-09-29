@@ -1,11 +1,12 @@
-const { Admin } = require('../../models');
-const Joi = require('joi');
+import db from '../../models/index.js';
+const { Admin } = db;
+import Joi from 'joi';
 import { Op } from "sequelize";
-import bcrypt from "bcrypt"; // FIX: لازم تستورد bcrypt
+import bcrypt from "bcrypt";
 
 export const getAdmins = async (req, res) => {
   try {
-    const admins = await Admin.findAll(); // FIX: findAll بدل find (ده بتاع Mongoose)
+    const admins = await Admin.findAll();
     return res.status(200).json({ admins });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -45,6 +46,9 @@ export const create = async (req, res) => {
     })
   });
 
+    if (!req.body) {
+      return res.status(400).json({ errors: ['البيانات مطلوبة'] });
+    }
   const { error } = schema.validate(req.body, { abortEarly: false });
   if (error) {
     return res.status(400).json({
@@ -84,11 +88,17 @@ export const modify = async (req, res) => {
     status: Joi.boolean().messages({
       "boolean.base": "Status must be true or false"
     }),
+    name: Joi.string().min(2).max(100).messages({
+      "string.base": "Name must be a string",
+    }),
     email: Joi.string().email().messages({
       "string.email": "Email must be a valid email address"
     })
   });
 
+  if (!req.body) {
+    return res.status(400).json({ errors: ['البيانات مطلوبة'] });
+  }
   const { error } = schema.validate(req.body, { abortEarly: false });
   if (error) {
     return res.status(400).json({
@@ -100,11 +110,13 @@ export const modify = async (req, res) => {
     const { name, email, password, status } = req.body;
     const admin_id = req.params.id;
 
-    const exists = await Admin.findOne({
-      where: { email, id: { [Op.ne]: admin_id } } // FIX: لازم where
-    });
-    if (exists) {
-      return res.status(400).json({ errors: ["Email already exists"] });
+    if(email){
+      const exists = await Admin.findOne({
+        where: { email, id: { [Op.ne]: admin_id } } // FIX: لازم where
+      });
+      if (exists) {
+        return res.status(400).json({ errors: ["Email already exists"] });
+      }
     }
 
     let admin_item = await Admin.findByPk(admin_id); // FIX: findByPk بدل findOne({id...})
@@ -132,7 +144,14 @@ export const delete_item = async (req, res) => {
   try {
     const admin_id = req.params.id;
 
-    const deleted = await Admin.destroy({ where: { id: admin_id } }); // FIX: destroy بدل findByIdAndDelete
+    const deleted = await Admin.destroy({
+      where: {
+        [Op.and]: [
+          { id: admin_id },
+          { id: { [Op.ne]: req.user.id } }
+        ]
+      }
+    });
     if (!deleted) {
       return res.status(404).json({ error: "Admin not found" });
     }

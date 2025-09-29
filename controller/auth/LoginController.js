@@ -1,4 +1,4 @@
-const { User, Comment } = require('../../models');
+const { Admin } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
@@ -17,15 +17,21 @@ const login = async (req, res) => {
         'any.required': 'كلمة المرور مطلوبة',
       }),
     });
+
+    if (!req.body) {
+      return res.status(400).json({ errors: ['البيانات مطلوبة'] });
+    }
     const { error } = schema.validate(req.body, { abortEarly: false });
     if (error) {
-      return res.status(400).json({ errors: error.details.map(e => e.message) });
+      return res.status(400).json({
+        errors: error.details.map(e => e.message)
+      });
     }
     const { email, password } = req.body;
 
-    const user = await User.findOne({ where: { email } });
+    const user = await Admin.findOne({ where: { email } });
     if (!user) return res.status(404).json({ message: 'User not found' });
-
+    if(!user.status)return res.status(404).json({ message: 'User is banned' });
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
@@ -40,32 +46,6 @@ const login = async (req, res) => {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
 };
-
-const comments = async (req, res, next) => {
-  try {
-    const user_comments = await User.findByPk(req.user.id, {
-      include: [
-        {
-          model: Comment,
-          attributes: ['id', 'title'],
-        },
-      ],
-    });
-
-    if (!user_comments) {
-      return res.status(404).json({ message: 'المستخدم غير موجود' });
-    }
-
-    return res.status(200).json({
-      user_comments: user_comments.Comments // لو عايز ترجع التعليقات فقط
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'حدث خطأ أثناء جلب التعليقات', error: err.message });
-  }
-};
-
 
 const uploadImageController = async (req, res) => {
     const schema = Joi.object({
@@ -90,6 +70,5 @@ const uploadImageController = async (req, res) => {
 
 module.exports = {
   login,
-  comments,
   uploadImageController,
 };

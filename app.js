@@ -2,7 +2,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
-const routes = require('./routes/user');
+const routes = require('./routes/admin');
 const db = require('./models');
 
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -11,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 require('dotenv').config();
 
 app.use(express.json());
-app.use('/user', routes);
+app.use('/admin', routes);
 
 
 db.sequelize.sync({ force: false }).then(() => {
