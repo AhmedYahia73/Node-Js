@@ -18,7 +18,9 @@ module.exports = (sequelize, DataTypes) => {
     image: DataTypes.STRING,
     longtuide: DataTypes.STRING,
     latuide: DataTypes.STRING,
-    phone: DataTypes.STRING
+    phone: DataTypes.STRING,
+    country: DataTypes.STRING,
+    map: DataTypes.STRING,
   }, {
     sequelize,
     modelName: 'UserApp',

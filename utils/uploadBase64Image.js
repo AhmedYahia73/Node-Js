@@ -14,10 +14,17 @@ const uploadBase64Image = (image, folder = 'uploads') => {
       const imageBuffer = Buffer.from(matches[2], 'base64');
       const imageType = matches[1].split('/')[1];
       const fileName = `image_${Date.now()}.${imageType}`;
-      const filePath = path.join(__dirname, '..', folder, fileName);
+      const folderPath = path.join(__dirname, '..', folder);
+
+      // ✅ إنشاء الفولدر لو مش موجود
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+      }
+
+      const filePath = path.join(folderPath, fileName);
 
       fs.writeFileSync(filePath, imageBuffer);
-      resolve(fileName);
+      resolve(folder + '/' + fileName);
     } catch (err) {
       reject(err);
     }
@@ -48,12 +55,12 @@ const updateBase64Image = (image, folder = 'uploads') => {
   });
 };
 
-const deleteImage = (filename, folder = 'uploads') => {
+const deleteImage = (filename, folder = null) => {
   return new Promise((resolve, reject) => {
     try {
       if (!filename) return reject(new Error('filename required'));
 
-      const filePath = path.join(__dirname, '..', folder, filename);
+      const filePath = path.join(__dirname, '..', filename);
 
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -67,4 +74,4 @@ const deleteImage = (filename, folder = 'uploads') => {
   });
 };
 
-module.exports = [uploadBase64Image, deleteImage];
+module.exports = {uploadBase64Image, updateBase64Image, deleteImage};

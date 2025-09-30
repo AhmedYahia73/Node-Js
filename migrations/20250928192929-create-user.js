@@ -29,6 +29,12 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
+      country: {
+        type: Sequelize.STRING
+      },
+      map: {
+        type: Sequelize.STRING
+      },
       vip: {
         type: Sequelize.BOOLEAN,
         defaultValue: false

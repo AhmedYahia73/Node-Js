@@ -3,7 +3,8 @@ const { UserApp } = db;
 import Joi from 'joi';
 import { Op } from "sequelize";
 import bcrypt from "bcrypt";
-import uploadBase64Image from "../../utils/uploadBase64Image.js";
+import {uploadBase64Image, deleteImage} from "../../utils/uploadBase64Image.js";
+import {getCountry, getMap} from "../../utils/googleMap.js";
 
 export const getUserApps = async (req, res) => {
   try {
@@ -63,13 +64,15 @@ export const create = async (req, res) => {
       return res.status(400).json({ errors: ["Phone already exists"] });
     }
 
-    image = await uploadBase64Image(image, 'userApp');
-    const UserApp = await UserApp.create({
+    image = await uploadBase64Image(image, 'uploads/userApp');
+    const user_app = await UserApp.create({
       name,
       longtuide,
       latuide,
       phone,
       image,
+      map: await getMap(latuide, longtuide),
+      country: await getCountry(latuide, longtuide)
     });
 
     return res.status(201).json({ success: "You create success" });
@@ -108,7 +111,7 @@ export const modify = async (req, res) => {
   }
 
   try {
-    const { name, image, longtuide, latuide, phone } = req.body;
+    let { name, image, longtuide, latuide, phone } = req.body;
     const UserApp_id = req.params.id;
 
     if(phone){
@@ -132,15 +135,17 @@ export const modify = async (req, res) => {
     if (image){
       if (UserApp_item.image) {
         try {
-          await deleteImage(UserApp_item.image, 'userApp');
+          await deleteImage(UserApp_item.image);
         } catch (e) {
           console.warn("Image delete failed:", e.message);
         }
       }
-      image = await uploadBase64Image(image, 'userApp');
+      image = await uploadBase64Image(image, 'uploads/userApp');
       UserApp_item.image = image;
     }
 
+    UserApp_item.map = await getMap(UserApp_item.latuide, UserApp_item.longtuide),
+    UserApp_item.country = await getCountry(UserApp_item.latuide, UserApp_item.longtuide)
     await UserApp_item.save();
 
     return res.status(201).json({ success: "You update success" });
