@@ -17,6 +17,9 @@ const {getUserApps : getUserApps,
      modify : modifyUserApp,
      delete_item : delete_itemUserApp,
     } = require('../controller/Admin/UserAppController');
+const {getSubscriper, getSubscription, updateSubscription, updateSubscriper} = require('../controller/Admin/SubscriptionController');
+const {getPaymob, updatePaymob} = require('../controller/Admin/PaymobController');
+const {getUsers, statusUser} = require('../controller/Admin/UserController');
 
 router.post('/login', LoginController.login);
 
@@ -31,5 +34,16 @@ router.get('/user_app/:id', auth, getItemUserApp);
 router.post('/user_app', auth, createUserApp);
 router.put('/user_app/:id', auth, modifyUserApp);
 router.delete('/user_app/:id', auth, delete_itemUserApp);
+
+router.get('/get_subscriper', auth, getSubscriper);
+router.put('/updateSubscriper/:id', auth, updateSubscriper);
+router.get('/get_subscription', auth, getSubscription);
+router.put('/update_supcription', auth, updateSubscription);
+
+router.get('/getPaymob', auth, getPaymob);
+router.put('/updatePaymob', auth, updatePaymob);
+
+router.get('/getUsers', auth, getUsers);
+router.put('/statusUser/:id', auth, statusUser);
 
 module.exports = router;

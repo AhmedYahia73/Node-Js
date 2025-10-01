@@ -15,8 +15,8 @@ module.exports = (sequelize, DataTypes) => {
   }
   User.init({
     name: DataTypes.STRING,
-    email: DataTypes.STRING,
-    image: DataTypes.STRING,
+    email: DataTypes.STRING, 
+    image: DataTypes.STRING, 
     longtuide: DataTypes.STRING,
     latuide: DataTypes.STRING,
     vip: DataTypes.BOOLEAN,
@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
     vip_from: DataTypes.DATE,
     vip_to: DataTypes.DATE,
     bio: DataTypes.STRING,
-    phone: DataTypes.STRING,
+    phone: DataTypes.STRING, 
     status: DataTypes.BOOLEAN
   }, {
     sequelize,
