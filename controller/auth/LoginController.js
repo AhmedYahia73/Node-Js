@@ -45,30 +45,8 @@ const login = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
-};
-
-const uploadImageController = async (req, res) => {
-    const schema = Joi.object({
-      image: Joi.string().required().messages({ 
-        'any.required': 'image is required',
-      }), 
-    });
-    const { error } = schema.validate(req.body, { abortEarly: false });
-    if (error) {
-      return res.status(400).json({ errors: error.details.map(e => e.message) });
-    }
-  try {
-    const { image } = req.body;
-
-    const fileName = await uploadBase64Image(image);
-
-    res.json({ message: 'you upload image success', file: fileName });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
+}; 
 
 module.exports = {
-  login,
-  uploadImageController,
+  login, 
 };
