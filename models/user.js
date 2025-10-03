@@ -27,6 +27,8 @@ module.exports = (sequelize, DataTypes) => {
     vip_to: DataTypes.DATE,
     bio: DataTypes.STRING,
     phone: DataTypes.STRING, 
+    country: DataTypes.STRING,
+    map: DataTypes.STRING,
     status: DataTypes.BOOLEAN
   }, {
     sequelize,

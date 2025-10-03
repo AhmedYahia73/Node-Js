@@ -16,6 +16,7 @@ module.exports = {
       email: {
         type: Sequelize.STRING,
         unique: true,
+        allowNull: false,
       },
       image: {
         type: Sequelize.STRING,
@@ -30,10 +31,12 @@ module.exports = {
         allowNull: true,
       },
       country: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false,
       },
       map: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false,
       },
       vip: {
         type: Sequelize.BOOLEAN,
