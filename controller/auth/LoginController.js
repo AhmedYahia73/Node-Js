@@ -35,7 +35,7 @@ const login = async (req, res) => {
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, phone: user.phone },
+      { id: user.id, email: user.email, phone: user.phone, role: "Admin" },
       process.env.JWT_SECRET,
       { expiresIn: '7h' }
     );
@@ -98,7 +98,7 @@ const signup_google = async (req, res) => {
     });
 
     const accessToken = jwt.sign(
-      { id: user_data.id, email: user_data.email, name: user_data.name },
+      { id: user_data.id, email: user_data.email, name: user_data.name, role: "User" },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -149,7 +149,7 @@ const login_user = async (req, res) => {
     await user.save();
 
     const accessToken = jwt.sign(
-      { id: user.id, email: user.email, name: user.name },
+      { id: user.id, email: user.email, name: user.name, role: "User" },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );

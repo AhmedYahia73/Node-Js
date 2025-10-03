@@ -29,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
     phone: DataTypes.STRING, 
     country: DataTypes.STRING,
     map: DataTypes.STRING,
+    mute: DataTypes.BOOLEAN,
     status: DataTypes.BOOLEAN
   }, {
     sequelize,
