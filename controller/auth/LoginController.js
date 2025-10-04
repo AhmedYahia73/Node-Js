@@ -47,6 +47,43 @@ const login = async (req, res) => {
 };
 
 
+const determineGoogleEmail = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      token: Joi.string().required(),  
+      client_id: Joi.string().required()
+    });
+
+    if (!req.body) {
+      return res.status(400).json({ errors: ['البيانات مطلوبة'] });
+    }
+
+    const { error } = schema.validate(req.body, { abortEarly: false });
+    if (error) {
+      return res.status(400).json({ errors: error.details.map(e => e.message) });
+    }
+
+    let { token, client_id } = req.body;
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: client_id,
+    });
+
+    const payload = ticket.getPayload();
+    const user = await User.findOne({ where: { email: payload['email'] } });
+    let login_status = false;
+    if (user) {
+      login_status = true;
+    }
+
+    res.json({ login_status });
+  } catch (err) {
+    return res.status(401).json({ success: false, message: "Invalid or expired Google token", error: err.message });
+  }
+};
+
+
 const signup_google = async (req, res) => {
   try {
     const schema = Joi.object({
@@ -164,5 +201,6 @@ const login_user = async (req, res) => {
 module.exports = {
   login,
   signup_google,
-  login_user
+  login_user,
+  determineGoogleEmail
 };
