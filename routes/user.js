@@ -14,8 +14,9 @@ router.get('/getPaymobList', auth_user, getPaymobList);
 router.post('/paymentPaymob', auth_user, paymentPaymob);
 router.get('/paymobCallback', paymobCallback);
 
-const {getUsers, startApp} = require('../controller/User/UsersController');
+const {getUsers, startApp, chat} = require('../controller/User/UsersController');
 router.get('/getUsers', auth_user, getUsers);
 router.post('/startApp', auth_user, startApp);
+router.post('/chat', auth_user, chat);
 
 module.exports = router;

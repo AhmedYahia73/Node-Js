@@ -1,8 +1,9 @@
 import db from '../../models/index.js';
-const { User, UserApp } = db;
+const { User, UserApp, BlockUser, Chat } = db;
 import Joi from 'joi';
 import { getCountry, getMap } from "../../utils/googleMap.js";
 import mysql from "mysql2/promise";
+import { Op } from "sequelize";
 
 export const getUsers = async (req, res) => {
   const schema = Joi.object({
@@ -24,68 +25,127 @@ export const getUsers = async (req, res) => {
 
   try {
     const baseUrl = req.protocol + "://" + req.get("host");
-    const user_id = req.user.id;
+    const user_id = req.user.id; 
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10; 
+    const new_page = page - 1;
+      // هات بيانات المستخدم الحالي
+      const user = await User.findOne({ where: { id: user_id } });
+      if (!user) return res.status(404).json({ message: "User not found" });
 
-    // هات بيانات المستخدم الحالي
-    const user = await User.findOne({ where: { id: user_id } });
-    if (!user) return res.status(404).json({ message: "User not found" });
+      const { latuide, longtuide, country, mute } = user;
+    // User App
+    let userApps = [];
+    if(page == 1){
+      // users_app من الجدول الثاني
+      userApps = await UserApp.findAll({ where: { country } });
+    }
 
-    const { latuide, longtuide, country, mute } = user;
+     const userAppCount = await UserApp.count({ where: { country } });
+    // حساب البداية والنهاية
+    const startIndex = (new_page - 1) * limit + limit - userAppCount; 
+    let real_users = [];
+    // Real User
+    if(page > 1){
 
-    // users من الجدول
-   const rows = await db.sequelize.query(
-      `SELECT 
-          id, name, latuide, longtuide, image, country, map,
-          (
-              6371 * acos(
-                  cos(radians(?)) * cos(radians(latuide)) * cos(radians(longtuide) - radians(?)) +
-                  sin(radians(?)) * sin(radians(latuide))
-              )
-          ) AS distance
-      FROM users
-      WHERE id != ?
-      ORDER BY distance ASC`,
-      {
-        replacements: [latuide, longtuide, latuide, user_id],
-        type: db.Sequelize.QueryTypes.SELECT
-      }
-    );
+      // users من الجدول
+    const rows = await db.sequelize.query(
+        `SELECT 
+            id, name, latuide, longtuide, image, country, map,
+            (
+                6371 * acos(
+                    cos(radians(?)) * cos(radians(latuide)) * cos(radians(longtuide) - radians(?)) +
+                    sin(radians(?)) * sin(radians(latuide))
+                )
+            ) AS distance
+        FROM users
+        WHERE id != ?
+        ORDER BY distance ASC
+        LIMIT ? OFFSET ?`,
+        {
+          replacements: [latuide, longtuide, latuide, user_id, limit, startIndex],
+          type: db.Sequelize.QueryTypes.SELECT
+        }
+      );
 
-    const real_users = rows.map((item) => ({
-      id: item.id,
-      name: item.name,
-      country: item.country,
-      map: item.map,
-      image: baseUrl + "/" + item.image,
-      distance: item.distance.toFixed(2) + " Km",
-    }));
+      real_users = await Promise.all(rows.map(async (item) => {
+        const is_bloked = await BlockUser.findOne({
+          where: {
+            [Op.or]: [
+              { user_id: user_id, friend_id: item.id },
+              { user_id: item.id, friend_id: user_id }
+            ]
+          }
+        });
 
-    // users_app من الجدول الثاني
-    const userApps = await UserApp.findAll({ where: { country } });
+
+        const msgs = await Chat.count({
+          where: {
+            sender_id: item.id, 
+            receiver_id: user_id, 
+            is_read: false  
+          },
+        });
+        return {
+          id: item.id,
+          name: item.name,
+          country: item.country,
+          map: item.map,
+          image: baseUrl + "/" + item.image,
+          distance: item.distance ? item.distance.toFixed(2) + " Km" : "Unknown",
+          is_bloked: !!is_bloked,
+          msgs_not_read : msgs
+        };
+      }));
+    }
+    else if(limit > userApps.length){
+      const new_limit = limit - userApps.length;
+      // users من الجدول
+    const rows = await db.sequelize.query(
+        `SELECT 
+            id, name, latuide, longtuide, image, country, map,
+            (
+                6371 * acos(
+                    cos(radians(?)) * cos(radians(latuide)) * cos(radians(longtuide) - radians(?)) +
+                    sin(radians(?)) * sin(radians(latuide))
+                )
+            ) AS distance
+        FROM users
+        WHERE id != ?
+        ORDER BY distance ASC
+        LIMIT ? OFFSET ?`,
+        {
+          replacements: [latuide, longtuide, latuide, user_id, new_limit, 0],
+          type: db.Sequelize.QueryTypes.SELECT
+        }
+      );
+
+      real_users = rows.map((item) => ({
+        id: item.id,
+        name: item.name,
+        country: item.country,
+        map: item.map,
+        image: baseUrl + "/" + item.image,
+        distance: item.distance.toFixed(2) + " Km",
+      }));
+    }
 
     const users_app = userApps.map((item) => ({
       id: item.id,
       name: item.name,
-      country: item.country,
-      map: null,
+      country: item.country, 
       image: baseUrl + "/" + item.image,
-      distance: "0 Km",
+      phone: item.phone,
     }));
-
-    // دمج الاثنين
-    const users = [...users_app, ...real_users];
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-
-    // حساب البداية والنهاية
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-
+    // 🟢 حساب عدد الصفحات
+    const totalUsers = await User.count({ where: { id: { [Op.ne]: user_id } } });
+    const totalUserApps = await UserApp.count({ where: { country } });
+    const totalPages = Math.ceil((totalUsers + totalUserApps) / limit);
     // قصّ البيانات
-    const paginatedUsers = users.slice(startIndex, endIndex);
     return res.status(200).json({ 
-        data: paginatedUsers, 
-        totalPages: Math.ceil(users.length / limit),
+        users_app, 
+        real_users, 
+        totalPages,
         app_is_mute: mute
      });
   } catch (err) {
@@ -129,3 +189,58 @@ export const startApp = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const chat = async (req, res) => {
+  const schema = Joi.object({
+    user_id: Joi.required().messages({
+      "any.required": "user_id is required",
+    }),  
+  });
+
+  if (!req.body) {
+    return res.status(400).json({ errors: ['البيانات مطلوبة'] });
+  }
+  const { error } = schema.validate(req.body, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      errors: error.details.map(e => e.message)
+    });
+  }
+
+  try { 
+    const my_id = req.user.id;
+    const user_id = req.body.user_id;
+    await Chat.update(
+      { is_read: true }, // القيم اللي هتتحدث
+      {
+        where: {
+          sender_id: user_id,
+          receiver_id: my_id,
+        },
+      }
+    );
+
+
+    const chats = await Chat.findAll({
+      where: {
+        [Op.or]: [
+          { sender_id: my_id, receiver_id: user_id },
+          { sender_id: user_id, receiver_id: my_id },
+        ],
+      },
+      order: [['id', 'ASC']], // لو حابب الرسائل بالترتيب الزمني
+    });
+
+    const messages = chats.map((item) => ({
+      message: item.message,
+      deleted: item.deleted,
+      is_read: item.is_read,
+      i_sender: item.sender_id === my_id,
+    }));
+
+    return res.status(200).json({ messages });
+ 
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
